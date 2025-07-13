@@ -6,8 +6,14 @@ import {
 		NodeConnectionType,
 	NodeOperationError,
 } from 'n8n-workflow';
-import Database from 'better-sqlite3';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
+import path from 'path';
+const binaryPath = path.resolve(__dirname, '../native/node-v127-linux-musl-x64/better_sqlite3.node');
+const Database = require('better-sqlite3');
+Database.prototype.load = function () {
+  return require(binaryPath);
+};
+
 
 async function all(db: BetterSqlite3Database, query: string, args: any): Promise<any> {
 	return new Promise((resolve, reject) => {
