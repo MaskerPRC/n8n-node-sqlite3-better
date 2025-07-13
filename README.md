@@ -92,3 +92,14 @@ Contributions are welcome! If you have any feature requests, bug reports, or sug
 ---
 
 Start integrating SQLite3 into your n8n workflows today with this community node! 🛠️🚀
+
+## How to build and ship the proper better-sqlite3 version
+
+```
+docker build -t better-sqlite3-builder .
+
+docker run --rm -it \
+  -v %CURRENT_DIR/.tmp:/app \
+  -v %CURRENT_DIR/native/node-v127-linux-musl-x64:/output \
+  better-sqlite3-builder
+```
