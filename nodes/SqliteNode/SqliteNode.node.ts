@@ -7,13 +7,8 @@ import {
 	NodeOperationError,
 } from 'n8n-workflow';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
-const fs = require('fs');
 import path from 'path';
 const binaryPath = path.join(__dirname, '../../../native/node-v127-linux-musl-x64/better_sqlite3.node');
-
-if (!fs.existsSync(binaryPath)) {
-  throw new Error(`Native better_sqlite3 binary not found at ${binaryPath}`);
-}
 
 const Database = require(binaryPath);
 
