@@ -8,10 +8,8 @@ import {
 } from 'n8n-workflow';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import path from 'path';
+import Database from 'better-sqlite3';
 const binaryPath = path.join(__dirname, '../../../native/node-v127-linux-musl-x64/better_sqlite3.node');
-
-const Database = require(binaryPath);
-
 
 async function all(db: BetterSqlite3Database, query: string, args: any): Promise<any> {
 	return new Promise((resolve, reject) => {
@@ -194,7 +192,9 @@ export class SqliteNode implements INodeType {
 
 			query = query.replace(/\$/g, '@'); // Replace $ with @ for better-sqlite3 compatibility
 
-			const db = new Database(db_path);
+			const db = new Database(db_path, {
+				nativeBinding: binaryPath,
+			});
 			try 
 			{
 				let argsT = JSON.parse(args_string);

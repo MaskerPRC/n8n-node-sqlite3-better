@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-RUN apk add --no-cache python3 make g++ linux-headers
+RUN apk add --no-cache python3 make g++ linux-headers sqlite-dev
 
 WORKDIR /app
 
@@ -10,4 +10,4 @@ CMD npm install better-sqlite3 --build-from-source && \
     mkdir -p /output && \
     # Copy the built native module (adjust path if needed)
     cp node_modules/better-sqlite3/build/Release/better_sqlite3.node /output/ && \
-    tail -f /dev/null
+    echo "Build complete. Native module is in /output/better_sqlite3.node"
