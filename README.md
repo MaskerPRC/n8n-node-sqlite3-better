@@ -1,3 +1,6 @@
+>[!WARNING]
+>This package is under heavy mantainance, due to a breaking change in the n8n docker compose toolchain I'm facing a huge issue to ship the proper library to handle n8n. I'm very sorry for the inconvinience. If you have any suggestion please a PR is welcome!
+
 # n8n-nodes-sqlite3
 
 This is an n8n community node. It lets you use SQLite3 in your n8n workflows.
