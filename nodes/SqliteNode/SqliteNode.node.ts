@@ -121,7 +121,7 @@ export class SqliteNode implements INodeType {
 				name: 'query',
 				type: 'string',
 				default: '',
-				placeholder: 'SELECT * FROM table where key = $key',
+				placeholder: 'SELECT * FROM table where key = @key',
 				description: 'The query to execute',
 				required: true,
 				typeOptions: {
@@ -133,7 +133,7 @@ export class SqliteNode implements INodeType {
 				name: 'args',
 				type: 'json',
 				default: '{}',
-				placeholder: '{"$key": "value"}',
+				placeholder: '{"key": "value"}',
 				description: 'The args that get passed to the query',
 			},
 			{
@@ -149,6 +149,22 @@ export class SqliteNode implements INodeType {
 						],
 					},
 				},				
+			},
+			{
+				displayName: 'Additional Options',
+				name: 'additionalOptions',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				options: [
+					{
+						displayName: 'Use Default Bindings',
+						name: 'use_default_bindings',
+						type: 'boolean',
+						default: false,
+						description: 'Whether you are running this outside of docker image and you want to use the default bindings for better-sqlite3',
+					},
+				],
 			}
 		],
 	};
@@ -166,6 +182,12 @@ export class SqliteNode implements INodeType {
 			let args_string = this.getNodeParameter('args', itemIndex, '') as string;
 			let query_type = this.getNodeParameter('query_type', itemIndex, '') as string;
 			let spread = this.getNodeParameter('spread', itemIndex, '') as boolean;
+
+			const additional_options = this.getNodeParameter('additionalOptions', 0, {}) as {
+				use_default_bindings?: boolean;
+			};
+
+			const use_default_bindings = additional_options.use_default_bindings ?? false;
 
 			if(query_type === 'AUTO') 
 			{
@@ -192,9 +214,14 @@ export class SqliteNode implements INodeType {
 
 			query = query.replace(/\$/g, '@'); // Replace $ with @ for better-sqlite3 compatibility
 
-			const db = new Database(db_path, {
+			let bindings: Database.Options = {
 				nativeBinding: binaryPath,
-			});
+			}
+			if(use_default_bindings) {
+				bindings = {};
+			}
+
+			const db = new Database(db_path, bindings);
 			try 
 			{
 				let argsT = JSON.parse(args_string);
