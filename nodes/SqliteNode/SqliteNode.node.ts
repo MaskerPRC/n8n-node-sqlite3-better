@@ -8,6 +8,7 @@ import {
 } from 'n8n-workflow';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import Database from 'better-sqlite3';
 const binaryPath = path.join(__dirname, '../../../native/node-v127-linux-musl-x64/better_sqlite3.node');
 
@@ -164,6 +165,13 @@ export class SqliteNode implements INodeType {
 						default: false,
 						description: 'Whether you are running this outside of docker image and you want to use the default bindings for better-sqlite3',
 					},
+					{
+						displayName: 'Use Custom Bindings',
+						name: 'use_custom_bindings',
+						type: 'string',
+						default: binaryPath,
+						description: 'Whether you want to provide your own better-sqlite3 bindings',
+					},
 				],
 			}
 		],
@@ -185,9 +193,12 @@ export class SqliteNode implements INodeType {
 
 			const additional_options = this.getNodeParameter('additionalOptions', 0, {}) as {
 				use_default_bindings?: boolean;
+				use_custom_bindings?: string;
 			};
+			
 
 			const use_default_bindings = additional_options.use_default_bindings ?? false;
+			const use_custom_bindings = additional_options.use_custom_bindings;
 
 			if(query_type === 'AUTO') 
 			{
@@ -219,6 +230,14 @@ export class SqliteNode implements INodeType {
 			}
 			if(use_default_bindings) {
 				bindings = {};
+			}
+			if(use_custom_bindings) {
+				bindings.nativeBinding = use_custom_bindings;
+				if(fs.existsSync(use_custom_bindings)) {
+					bindings.nativeBinding = use_custom_bindings;
+				} else {
+					throw new NodeOperationError(this.getNode(), `Custom bindings file not found at ${use_custom_bindings}`);
+				}
 			}
 
 			const db = new Database(db_path, bindings);
