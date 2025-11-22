@@ -175,20 +175,6 @@ export class SqliteNodeBetter implements INodeType {
 				description: 'The args that get passed to the query (JSON format, will be merged with form variables)',
 			},
 			{
-				displayName: 'Spread Result',
-				name: 'spread',
-				type: 'boolean',
-				default: false,
-				description: 'Whether the result should be spread into multiple items',
-				displayOptions: {
-					show: {
-						query_type: [
-							'SELECT',
-						],
-					},
-				},				
-			},
-			{
 				displayName: 'Array Field Name',
 				name: 'arrayFieldName',
 				type: 'string',
