@@ -1,5 +1,5 @@
 {
-	"node": "n8n-nodes-base.SqliteNode",
+	"node": "n8n-nodes-sqlite3-better.SqliteNode",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": [

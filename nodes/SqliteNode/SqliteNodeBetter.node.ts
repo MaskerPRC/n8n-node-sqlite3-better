@@ -52,16 +52,16 @@ async function exec(db: BetterSqlite3Database, query: string): Promise<any> {
 }
  
 
-export class SqliteNode implements INodeType {
+export class SqliteNodeBetter implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'SQLite Node',
-		name: 'sqliteNode',
+		displayName: 'SQLite Node (Better)',
+		name: 'sqliteNodeBetter',
 		icon: 'file:sqlite-icon.svg',
 		group: ['transform'],
 		version: 1,
 		description: 'A node to perform query in a local sqlite database',
 		defaults: {
-			name: 'Sqlite Node',
+			name: 'Sqlite Node (Better)',
 		},
 		inputs: [NodeConnectionType.Main] as NodeConnectionType[],
 		outputs: [NodeConnectionType.Main] as NodeConnectionType[],
