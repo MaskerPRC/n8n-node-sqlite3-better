@@ -8,6 +8,7 @@ import {
 } from 'n8n-workflow';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import Database from 'better-sqlite3';
 const binaryPath = path.join(__dirname, '../../../native/node-v127-linux-musl-x64/better_sqlite3.node');
 
@@ -121,7 +122,7 @@ export class SqliteNode implements INodeType {
 				name: 'query',
 				type: 'string',
 				default: '',
-				placeholder: 'SELECT * FROM table where key = $key',
+				placeholder: 'SELECT * FROM table where key = @key',
 				description: 'The query to execute',
 				required: true,
 				typeOptions: {
@@ -133,7 +134,7 @@ export class SqliteNode implements INodeType {
 				name: 'args',
 				type: 'json',
 				default: '{}',
-				placeholder: '{"$key": "value"}',
+				placeholder: '{"key": "value"}',
 				description: 'The args that get passed to the query',
 			},
 			{
@@ -149,6 +150,29 @@ export class SqliteNode implements INodeType {
 						],
 					},
 				},				
+			},
+			{
+				displayName: 'Additional Options',
+				name: 'additionalOptions',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				options: [
+					{
+						displayName: 'Use Default Bindings',
+						name: 'use_default_bindings',
+						type: 'boolean',
+						default: false,
+						description: 'Whether you are running this outside of docker image and you want to use the default bindings for better-sqlite3',
+					},
+					{
+						displayName: 'Use Custom Bindings',
+						name: 'use_custom_bindings',
+						type: 'string',
+						default: binaryPath,
+						description: 'Whether you want to provide your own better-sqlite3 bindings',
+					},
+				],
 			}
 		],
 	};
@@ -166,6 +190,15 @@ export class SqliteNode implements INodeType {
 			let args_string = this.getNodeParameter('args', itemIndex, '') as string;
 			let query_type = this.getNodeParameter('query_type', itemIndex, '') as string;
 			let spread = this.getNodeParameter('spread', itemIndex, '') as boolean;
+
+			const additional_options = this.getNodeParameter('additionalOptions', 0, {}) as {
+				use_default_bindings?: boolean;
+				use_custom_bindings?: string;
+			};
+			
+
+			const use_default_bindings = additional_options.use_default_bindings ?? false;
+			const use_custom_bindings = additional_options.use_custom_bindings;
 
 			if(query_type === 'AUTO') 
 			{
@@ -192,9 +225,22 @@ export class SqliteNode implements INodeType {
 
 			query = query.replace(/\$/g, '@'); // Replace $ with @ for better-sqlite3 compatibility
 
-			const db = new Database(db_path, {
+			let bindings: Database.Options = {
 				nativeBinding: binaryPath,
-			});
+			}
+			if(use_default_bindings) {
+				bindings = {};
+			}
+			if(use_custom_bindings) {
+				bindings.nativeBinding = use_custom_bindings;
+				if(fs.existsSync(use_custom_bindings)) {
+					bindings.nativeBinding = use_custom_bindings;
+				} else {
+					throw new NodeOperationError(this.getNode(), `Custom bindings file not found at ${use_custom_bindings}`);
+				}
+			}
+
+			const db = new Database(db_path, bindings);
 			try 
 			{
 				let argsT = JSON.parse(args_string);

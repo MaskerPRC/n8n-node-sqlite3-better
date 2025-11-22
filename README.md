@@ -49,14 +49,25 @@ This node is compatible with all n8n versions that support custom nodes. Ensure 
 
 ![Create table](images/create.png)
 
+```sqlite
+CREATE TABLE IF NOT EXISTS employees (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    age INTEGER
+);
+```
+
 Args are not needed for creating a table simply past the query.
 
 ### Insert
 
 ![Insert](images/insert.png)
 
-It's important to specify parameter in this syntax `$param`.
-This prevent sql-injection and it's easy to debug an error.
+It's important to specify parameter in this syntax `@param`, it's also supported `$param` for backwards compatibility.
+
+```
+INSERT INTO employees (name, age) VALUES (@name, @age);
+```
 
 ### Auto
 
@@ -74,6 +85,12 @@ Normally nodes return 1 value for each items passed.
 ![Select spread](images/select_spread.png)
 
 With spread operator only available for `SELECT` it's possible to return multiple items for every item requested.
+
+![Use default bindings](images/use_default_bindings.png)
+
+If you are running this node outside of docker apline provided by n8n you may ended up having this issue:
+`libc.musl-x86_64.so.1: cannot open shared object file: No such file or directory`.
+You can try adding the optional parameter use default bindings and turn it on.
 
 ## Resources
 
