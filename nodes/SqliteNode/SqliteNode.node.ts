@@ -194,7 +194,7 @@ export class SqliteNode implements INodeType {
 				type: 'string',
 				default: '',
 				placeholder: 'results',
-				description: 'If specified, returns a single item with an array field named by this value. If empty, returns items structure (each row as an item)',
+				description: 'If specified, returns a single item with an array field named by this value. If empty, returns items structure (each row as an item).',
 				displayOptions: {
 					show: {
 						query_type: [
