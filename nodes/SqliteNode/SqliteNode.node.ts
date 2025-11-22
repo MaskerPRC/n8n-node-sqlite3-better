@@ -130,12 +130,49 @@ export class SqliteNode implements INodeType {
 				},
 			},
 			{
-				displayName: 'Args',
+				displayName: 'Variables',
+				name: 'formVariables',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				placeholder: 'Add Variable',
+				default: {},
+				description: 'Configure variables for the query using a form (easier than writing JSON)',
+				options: [
+					{
+						displayName: 'Variable',
+						name: 'variable',
+						values: [
+							{
+								displayName: 'Name',
+								name: 'name',
+								type: 'string',
+								default: '',
+								placeholder: 'key',
+								description: 'Variable name (without @ or $ prefix)',
+								required: true,
+							},
+							{
+								displayName: 'Value',
+								name: 'value',
+								type: 'string',
+								default: '',
+								placeholder: 'value',
+								description: 'Variable value',
+								required: true,
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Args (JSON)',
 				name: 'args',
 				type: 'json',
 				default: '{}',
 				placeholder: '{"key": "value"}',
-				description: 'The args that get passed to the query',
+				description: 'The args that get passed to the query (JSON format, will be merged with form variables)',
 			},
 			{
 				displayName: 'Spread Result',
@@ -150,6 +187,21 @@ export class SqliteNode implements INodeType {
 						],
 					},
 				},				
+			},
+			{
+				displayName: 'Array Field Name',
+				name: 'arrayFieldName',
+				type: 'string',
+				default: '',
+				placeholder: 'results',
+				description: 'If specified, returns a single item with an array field named by this value. If empty, returns items structure (each row as an item)',
+				displayOptions: {
+					show: {
+						query_type: [
+							'SELECT',
+						],
+					},
+				},
 			},
 			{
 				displayName: 'Additional Options',
@@ -187,9 +239,17 @@ export class SqliteNode implements INodeType {
 			
 			let db_path = this.getNodeParameter('db_path', itemIndex, '') as string;
 			let query = this.getNodeParameter('query', itemIndex, '') as string;
-			let args_string = this.getNodeParameter('args', itemIndex, '') as string;
+			let args_string = this.getNodeParameter('args', itemIndex, '{}') as string;
 			let query_type = this.getNodeParameter('query_type', itemIndex, '') as string;
-			let spread = this.getNodeParameter('spread', itemIndex, '') as boolean;
+			let arrayFieldName = this.getNodeParameter('arrayFieldName', itemIndex, '') as string;
+			
+			// Get form-based variables
+			const formVariablesData = this.getNodeParameter('formVariables', itemIndex, {}) as {
+				variable?: Array<{
+					name: string;
+					value: string;
+				}>;
+			};
 
 			const additional_options = this.getNodeParameter('additionalOptions', 0, {}) as {
 				use_default_bindings?: boolean;
@@ -243,11 +303,36 @@ export class SqliteNode implements INodeType {
 			const db = new Database(db_path, bindings);
 			try 
 			{
-				let argsT = JSON.parse(args_string);
+				// Parse JSON args
+				let argsT: Record<string, any> = {};
+				try {
+					argsT = JSON.parse(args_string || '{}');
+				} catch (e) {
+					// If JSON parsing fails, use empty object
+					argsT = {};
+				}
+				
+				// Start with form variables
 				let args: Record<string, any> = {};
+				if (formVariablesData && formVariablesData.variable && Array.isArray(formVariablesData.variable)) {
+					formVariablesData.variable.forEach((variable: { name: string; value: string }) => {
+						if (variable.name && variable.name.trim() !== '') {
+							// Remove @ or $ prefix if present
+							const cleanName = variable.name.replace(/^[@$]/, '').trim();
+							if (cleanName) {
+								args[cleanName] = variable.value;
+							}
+						}
+					});
+				}
+				
+				// Merge with JSON args (JSON args take precedence if there are conflicts)
 				for(const key in argsT)
 				{
-					args[key.replace(/\$/g, '')] = argsT[key]; // Replace @ with $ for better-sqlite3 compatibility
+					const cleanKey = key.replace(/^[@$]/, '').trim();
+					if (cleanKey) {
+						args[cleanKey] = argsT[key];
+					}
 				}
 
 				let results;
@@ -308,18 +393,52 @@ export class SqliteNode implements INodeType {
 					results = await exec(db, query)
 				}
 
-				if(query_type === 'SELECT' && spread) 
+				if(query_type === 'SELECT') 
 				{
-					// If spread is true, spread the result into multiple items
-					const newItems = results.map((result: any) => 
+					// Handle multiple queries result
+					if(Array.isArray(results) && results.length > 0 && Array.isArray(results[0])) 
 					{
-						if(Array.isArray(result))
-							return { json: {items: result} }; 
+						// Multiple queries case
+						if(arrayFieldName && arrayFieldName.trim() !== '') 
+						{
+							// Return single item with array field
+							const resultObj: Record<string, any> = {};
+							resultObj[arrayFieldName] = results;
+							outputItems.push({json: resultObj});
+						} 
 						else 
-							return { json: result };
-					});
-					
-					outputItems.push(...newItems);
+						{
+							// Return items structure - flatten all results
+							results.forEach((resultArray: any[]) => {
+								if(Array.isArray(resultArray)) {
+									resultArray.forEach((row: any) => {
+										outputItems.push({json: row});
+									});
+								} else {
+									outputItems.push({json: resultArray});
+								}
+							});
+						}
+					} 
+					else 
+					{
+						// Single query case
+						if(arrayFieldName && arrayFieldName.trim() !== '') 
+						{
+							// Return single item with array field
+							const resultObj: Record<string, any> = {};
+							resultObj[arrayFieldName] = Array.isArray(results) ? results : [results];
+							outputItems.push({json: resultObj});
+						} 
+						else 
+						{
+							// Return items structure (each row as an item) - default behavior
+							const resultArray = Array.isArray(results) ? results : [results];
+							resultArray.forEach((row: any) => {
+								outputItems.push({json: row});
+							});
+						}
+					}
 				} 
 				else 
 				{
