@@ -199,6 +199,7 @@ export class SqliteNodeBetter implements INodeType {
 					show: {
 						query_type: [
 							'SELECT',
+							'AUTO',
 						],
 					},
 				},
